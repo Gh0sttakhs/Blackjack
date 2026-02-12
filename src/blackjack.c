@@ -3,6 +3,26 @@
 #include <time.h>
 #include <string.h>
 
+// --- ΠΡΟΣΘΗΚΗ ΒΙΒΛΙΟΘΗΚΩΝ ΓΙΑ SLEEP & CLEAR ---
+#ifdef _WIN32
+#include <windows.h>
+#define SLEEP_MS(x) Sleep(x)
+#define CLEAR_SCREEN system("cls")
+#else
+#include <unistd.h>
+#define SLEEP_MS(x) usleep((x)*1000)
+#define CLEAR_SCREEN system("clear")
+#endif
+
+// --- ΟΡΙΣΜΟΣ ΧΡΩΜΑΤΩΝ (ANSI CODES) ---
+#define RESET   "\033[0m"
+#define RED     "\033[1;31m"
+#define GREEN   "\033[1;32m"
+#define YELLOW  "\033[1;33m"
+#define BLUE    "\033[1;34m"
+#define CYAN    "\033[1;36m"
+#define BOLD    "\033[1m"
+
 typedef struct {
     char suit[10];
     char rank[3];
@@ -26,46 +46,59 @@ int main() {
     init_card(deck);
     
     char answer;
-    printf("\n=== WELCOME TO BLACKJACK ===");
+    
     do {
-        printf("\n\n\n=== NEW GAME ===\n");
+        CLEAR_SCREEN; // Καθαρισμός οθόνης στην αρχή
+        printf(CYAN BOLD "\n=== WELCOME TO BLACKJACK ===\n" RESET);
+        printf(YELLOW "\nShuffling the deck...\n" RESET);
+        SLEEP_MS(1200); // Animation ανακατέματος
         shuffle_deck(deck);
+
+        printf(GREEN "\n=== NEW GAME ===\n" RESET);
+        SLEEP_MS(500);
 
         int pcount = 0 , dcount = 0, card = 0;
 
-        playerHand[pcount++] = deck[card++];
-        dealerHand[dcount++] = deck[card++];
-        playerHand[pcount++] = deck[card++];
-        dealerHand[dcount++] = deck[card++];
+        // Animation μοιράσματος (ένα-ένα τα χαρτιά)
+        printf("Dealing cards...\n");
+        playerHand[pcount++] = deck[card++]; SLEEP_MS(400);
+        dealerHand[dcount++] = deck[card++]; SLEEP_MS(400);
+        playerHand[pcount++] = deck[card++]; SLEEP_MS(400);
+        dealerHand[dcount++] = deck[card++]; SLEEP_MS(400);
 
         int pscore = 0, playerBusted = 0;
         char choice;
         while(1) {
+            CLEAR_SCREEN; // Καθαρίζουμε για να φαίνεται καθαρό το τραπέζι
+            printf(CYAN BOLD "\n=== BLACKJACK TABLE ===\n" RESET);
+            
             pscore = calculate_score(playerHand, pcount);
 
-            printf("\nDealer shows: %s of %s [Hidden Card]\n", dealerHand[0].rank, dealerHand[0].suit);
+            printf("\nDealer shows: " YELLOW "%s of %s" RESET " [Hidden Card]\n", dealerHand[0].rank, dealerHand[0].suit);
             print_hand(playerHand,pcount,"YOUR HAND");
-            printf("Your score: %d\n",pscore);
+            printf("Your score: " BOLD "%d" RESET "\n", pscore);
 
             //lost
             if (pscore > 21) {
-                printf("--> BUSTED! You went over 21.\n");
+                printf(RED BOLD "\n--> BUSTED! You went over 21.\n" RESET);
                 playerBusted = 1;
                 break;
             }
             if (pscore == 21) {
-                printf("--> BLACKJACK / 21! Great!\n");
+                printf(GREEN BOLD "\n--> BLACKJACK / 21! Great!\n" RESET);
                 break;
             }
 
-            printf("Hit (h) or Stand (s)? ");
+            printf(CYAN "\nHit (h) or Stand (s)? " RESET);
             scanf(" %c", &choice);
 
             if (choice == 'h') {
-                printf("--> You draw a card...\n");
+                printf(YELLOW "--> You draw a card...\n" RESET);
+                SLEEP_MS(600); // Αγωνία στο τράβηγμα
                 playerHand[pcount++] = deck[card++];
             } else if (choice == 's') {
-                printf("--> You stand.\n");
+                printf(BLUE "--> You stand.\n" RESET);
+                SLEEP_MS(500);
                 break;
             }
         }
@@ -73,12 +106,15 @@ int main() {
         int dscore = calculate_score(dealerHand, dcount);
 
         if (!playerBusted) {
-            printf("\n--- DEALER'S TURN ---\n");
+            printf(YELLOW "\n--- DEALER'S TURN ---\n" RESET);
+            SLEEP_MS(800);
             print_hand(dealerHand, dcount, "DEALER HAND");
             printf("Dealer Score: %d\n", dscore);
+            SLEEP_MS(1000);
 
             while (dscore < 17) {
-                printf("--> Dealer draws...\n");
+                printf(YELLOW "--> Dealer draws...\n" RESET);
+                SLEEP_MS(1200); // Αγωνία όταν τραβάει ο Dealer
                 dealerHand[dcount++] = deck[card++];
                 dscore = calculate_score(dealerHand, dcount);
             
@@ -87,25 +123,26 @@ int main() {
             }
         }   
 
-        printf("\n=== FINAL RESULT ===\n");
+        printf(CYAN BOLD "\n=== FINAL RESULT ===\n" RESET);
         printf("You: %d | Dealer: %d\n", pscore, dscore);
 
         if (playerBusted) {
-            printf("YOU LOSE! (Busted)\n");
+            printf(RED BOLD "YOU LOSE! (Busted)\n" RESET);
         } else if (dscore > 21) {
-            printf("YOU WIN! (Dealer Busted)\n");
+            printf(GREEN BOLD "YOU WIN! (Dealer Busted)\n" RESET);
         } else if (pscore > dscore) {
-            printf("YOU WIN!\n");
+            printf(GREEN BOLD "YOU WIN!\n" RESET);
         } else if (pscore < dscore) {
-            printf("YOU LOSE!\n");
+            printf(RED BOLD "YOU LOSE!\n" RESET);
         } else {
-            printf("PUSH! (It's a tie)\n");
+            printf(YELLOW BOLD "PUSH! (It's a tie)\n" RESET);
         }
 
-        printf("Play again? Yes (y) or No (n): ");
+        printf("\nPlay again? Yes (y) or No (n): ");
         scanf(" %c",&answer);
     } while (answer != 'n');
     
+    printf(CYAN "\nThanks for playing! Goodbye.\n" RESET);
     return 0;
 }
 
@@ -134,7 +171,8 @@ void shuffle_deck(Card deck[]) {
 void print_hand(Card hand[], int num_cards, char *owner) {
     printf("%s: ",owner);
     for (int i = 0 ; i < num_cards ; i++) {
-        printf("[%s %s] ", hand[i].rank, hand[i].suit);
+        // Προσθήκη χρώματος στα χαρτιά
+        printf(BOLD "[%s %s] " RESET, hand[i].rank, hand[i].suit);
     }
     printf("\n");
 }
